@@ -5,13 +5,11 @@ const StorageManager = require('./utils/storage');
 const AudioManager = require('./utils/audio');
 const LoadingScene = require('./scenes/loading-scene');
 const MainMenuScene = require('./scenes/main-menu');
-const LevelSelectScene = require('./scenes/level-select');
-const GameScene = require('./scenes/game-scene');
-const ReviveScene = require('./scenes/revive-scene');
-const ResultScene = require('./scenes/result-scene');
-const SettingsScene = require('./scenes/settings-scene');
-const PauseScene = require('./scenes/pause-scene');
-const HelpScene = require('./scenes/help-scene');
+
+// 分包场景名列表
+const SUBPACKAGE_SCENES = [
+  'levelSelect', 'game', 'revive', 'result', 'settings', 'pause', 'help'
+];
 
 class SmartCutGame {
   constructor() {
@@ -20,14 +18,14 @@ class SmartCutGame {
     this.device = new DeviceAdapter();
     this.storage = new StorageManager();
     this.audio = new AudioManager(this);
-    // 首次进入游戏时自动播放主页背景音乐（如果开关为开）
-    if (this.audio.settings.bgMusic) {
-      this.audio.playMusic('main');
-    }
-    
     // 游戏状态
     this.currentScene = null;
     this.scenes = {};
+    this.sceneClasses = {
+      loading: LoadingScene,
+      mainMenu: MainMenuScene,
+      // 其余场景动态 require
+    };
     this.isRunning = false;
     this.lastTime = 0;
     
@@ -40,13 +38,11 @@ class SmartCutGame {
   }
 
   init() {
-    // 初始化场景
-    this.initScenes();
-    
-    // 绑定事件
+    this.scenes = {
+      loading: new this.sceneClasses.loading(this)
+    };
+    this.switchScene('loading');
     this.bindEvents();
-    
-    // 启动游戏循环
     this.start();
   }
 
@@ -70,8 +66,7 @@ class SmartCutGame {
 
   bindEvents() {
     // 触摸开始事件
-    this.canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
+    wx.onTouchStart((e) => {
       if (this.modalPending) return; // 阻断事件
       const touch = e.touches[0];
       this.touchStartX = touch.clientX;
@@ -89,8 +84,7 @@ class SmartCutGame {
     });
 
     // 触摸移动事件
-    this.canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
+    wx.onTouchMove((e) => {
       if (!this.isTouching) return;
       const touch = e.touches[0];
       const deltaX = touch.clientX - this.touchStartX;
@@ -103,17 +97,13 @@ class SmartCutGame {
     });
 
     // 触摸结束事件
-    this.canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
+    wx.onTouchEnd((e) => {
       this.isTouching = false;
-      // 弹窗不处理end
-      if (this.currentScene && this.currentScene.resolve) return;
       if (this.currentScene && this.currentScene.handleTouchEnd) {
         this.currentScene.handleTouchEnd();
       }
     });
 
-    // 窗口大小变化事件
     wx.onWindowResize(() => {
       this.handleResize();
     });
@@ -157,25 +147,78 @@ class SmartCutGame {
     }
   }
 
-  switchScene(sceneName, params = {}) {
+  async switchScene(sceneName, params = {}) {
     // 销毁当前场景
     if (this.currentScene && this.currentScene.destroy) {
       this.currentScene.destroy();
     }
-    // 切换到新场景
-    const newScene = this.scenes[sceneName];
-    if (newScene) {
-      this.currentScene = newScene;
-      // 初始化场景参数
+    // 分包场景动态加载
+    if (SUBPACKAGE_SCENES.includes(sceneName)) {
+      // 若分包未加载，先加载分包
+      if (!this._subpackageLoaded) {
+        await new Promise((resolve, reject) => {
+          wx.loadSubpackage({
+            name: 'assets',
+            success: () => {
+              this._subpackageLoaded = true;
+              resolve();
+            },
+            fail: (err) => {
+              this.showModal('错误', '资源包加载失败，请检查网络后重试。').then(() => {
+                this.exitGame();
+              });
+              reject(err);
+            }
+          });
+        });
+      }
+      // 动态 require 场景
+      if (!this.sceneClasses[sceneName]) {
+        switch (sceneName) {
+          case 'levelSelect':
+            this.sceneClasses.levelSelect = require('../subpackages/assets/scenes/level-select'); break;
+          case 'game':
+            this.sceneClasses.game = require('../subpackages/assets/scenes/game-scene'); break;
+          case 'revive':
+            this.sceneClasses.revive = require('../subpackages/assets/scenes/revive-scene'); break;
+          case 'result':
+            this.sceneClasses.result = require('../subpackages/assets/scenes/result-scene'); break;
+          case 'settings':
+            this.sceneClasses.settings = require('../subpackages/assets/scenes/settings-scene'); break;
+          case 'pause':
+            this.sceneClasses.pause = require('../subpackages/assets/scenes/pause-scene'); break;
+          case 'help':
+            this.sceneClasses.help = require('../subpackages/assets/scenes/help-scene'); break;
+        }
+      }
+      if (!this.scenes[sceneName]) {
+        const SceneClass = this.sceneClasses[sceneName];
+        if (SceneClass) {
+          this.scenes[sceneName] = new SceneClass(this);
+        } else {
+          console.error(`Scene class for ${sceneName} not found`);
+          return;
+        }
+      }
+      this.currentScene = this.scenes[sceneName];
       if (this.currentScene.init && params) {
         this.currentScene.init(params);
       }
-      // 清理控制台日志，防止旧场景日志残留
-      // if (typeof console.clear === 'function') {
-      //   console.clear();
-      // }
-    } else {
-      console.error(`Scene ${sceneName} not found`);
+      return;
+    }
+    // 主包场景同步 require
+    if (!this.scenes[sceneName]) {
+      const SceneClass = this.sceneClasses[sceneName];
+      if (SceneClass) {
+        this.scenes[sceneName] = new SceneClass(this);
+      } else {
+        console.error(`Scene class for ${sceneName} not found`);
+        return;
+      }
+    }
+    this.currentScene = this.scenes[sceneName];
+    if (this.currentScene.init && params) {
+      this.currentScene.init(params);
     }
   }
 
@@ -235,8 +278,8 @@ class SmartCutGame {
   // 分享游戏
   shareGame() {
     wx.shareAppMessage({
-      title: '智慧切割 - 挑战你的解谜能力！',
-      imageUrl: 'images/share.jpg'
+      title: '切割投喂大作战 - 挑战你的思维能力！',
+      imageUrl: 'subpackages/assets/images/menu-background.png'
     });
   }
 

@@ -27,43 +27,57 @@ class AudioManager {
     // 切割音效
     this.sounds.cut = wx.createInnerAudioContext();
     this.sounds.cut.src = 'audio/cut.mp3';
+    this.sounds.cut.onError((e) => { console.error('切割音效播放失败', e); });
+    this.sounds.cut.onCanplay(() => { this.sounds.cut.canPlay = true; });
 
     // 碰撞音效
     this.sounds.collision = wx.createInnerAudioContext();
     this.sounds.collision.src = 'audio/collision.mp3';
+    this.sounds.collision.onError((e) => { console.error('碰撞音效播放失败', e); });
+    this.sounds.collision.onCanplay(() => { this.sounds.collision.canPlay = true; });
 
     // 按钮音效
     this.sounds.button = wx.createInnerAudioContext();
     this.sounds.button.src = 'audio/button.mp3';
+    this.sounds.button.onError((e) => { console.error('按钮音效播放失败', e); });
+    this.sounds.button.onCanplay(() => { this.sounds.button.canPlay = true; });
 
     // 成功音效
     this.sounds.success = wx.createInnerAudioContext();
     this.sounds.success.src = 'audio/success.mp3';
+    this.sounds.success.onError((e) => { console.error('成功音效播放失败', e); });
+    this.sounds.success.onCanplay(() => { this.sounds.success.canPlay = true; });
 
     // 失败音效
     this.sounds.fail = wx.createInnerAudioContext();
     this.sounds.fail.src = 'audio/fail.mp3';
+    this.sounds.fail.onError((e) => { console.error('失败音效播放失败', e); });
+    this.sounds.fail.onCanplay(() => { this.sounds.fail.canPlay = true; });
 
     // 主界面音乐
     this.music.main = wx.createInnerAudioContext();
     this.music.main.src = 'audio/game_main_interface.mp3';
     this.music.main.loop = true;
+    this.music.main.onError((e) => { console.error('主界面音乐播放失败', e); });
+    this.music.main.onCanplay(() => { this.music.main.canPlay = true; });
 
     // 闯关中音乐
     this.music.game = wx.createInnerAudioContext();
     this.music.game.src = 'audio/game_bgm.mp3';
     this.music.game.loop = true;
+    this.music.game.onError((e) => { console.error('闯关音乐播放失败', e); });
+    this.music.game.onCanplay(() => { this.music.game.canPlay = true; });
   }
 
   // 播放音效
   playSound(soundName) {
     if (!this.settings.sound) return;
     const sound = this.sounds[soundName];
-    if (sound) {
+    if (sound && sound.canPlay) {
       sound.stop();
       sound.play();
     } else {
-      console.warn('[AudioManager] 未找到音效:', soundName);
+      console.warn('[AudioManager] 未找到音效或音效未 ready:', soundName);
     }
   }
 
@@ -86,6 +100,7 @@ class AudioManager {
 
   // 背景音乐控制
   playMusic(type) {
+    // 已移除日志
     if (!this.settings.bgMusic) {
       Object.keys(this.music).forEach(key => {
         if (this.music[key]) this.music[key].pause();
@@ -105,11 +120,17 @@ class AudioManager {
     Object.keys(this.music).forEach(key => {
       if (this.music[key]) this.music[key].stop();
     });
-    if (this.music[type]) {
-      this.music[type].play();
+    if (this.music[type] && this.music[type].canPlay) {
+      const playPromise = this.music[type].play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // 播放异常处理
+          console.warn(`[AudioManager] 音乐播放失败: ${type}`, error);
+        });
+      }
       this.currentMusic = type;
     } else {
-      console.warn('[AudioManager] 未找到音乐类型:', type);
+      console.warn('[AudioManager] 未找到音乐类型或音乐未 ready:', type);
     }
   }
   stopMusic() {

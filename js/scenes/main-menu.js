@@ -30,17 +30,17 @@ class MainMenuScene {
     
     // 预加载背景图
     this._backgroundImg = null;
-    if (typeof wx !== 'undefined' && wx.createImage) {
-      this._backgroundImg = wx.createImage();
-      this._backgroundImg.src = 'images/menu-background.png';
-    }
     
-    this.isTouching = false; // 新增：全局触摸状态
+    this.isTouching = false; // 全局触摸状态
     this.init();
 
   }
 
   init() {
+    if (typeof wx !== 'undefined' && wx.createImage && !this._backgroundImg) {
+      this._backgroundImg = wx.createImage();
+      this._backgroundImg.src = 'images/menu-background.png';
+    }
     // 每次进入主页都播放主界面音乐
     this.audio.playMusic('main');
     const centerX = this.device.screenWidth / 2;
@@ -172,6 +172,7 @@ class MainMenuScene {
 
 
   drawTitle(ctx) {
+    if (!this.title) return;
     ctx.fillStyle = this.title.color;
     ctx.font = `bold ${this.title.fontSize}px Arial`;
     ctx.textAlign = 'center';
@@ -245,6 +246,9 @@ class MainMenuScene {
   }
 
   destroy() {
+    if (this.audio && typeof this.audio.stopMusic === 'function') {
+      this.audio.stopMusic();
+    }
     // 离开主菜单时停止主界面音乐
     this.audio.stopMusic();
     this.buttons = [];

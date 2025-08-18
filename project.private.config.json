@@ -1,6 +1,6 @@
 {
   "libVersion": "3.8.10",
-  "projectname": "%E6%99%BA%E6%85%A7%E5%88%87%E5%89%B2",
+  "projectname": "切割投喂大作战",
   "condition": {},
   "setting": {
     "urlCheck": false,
@@ -18,7 +18,7 @@
     "compileHotReLoad": false,
     "checkInvalidKey": true,
     "ignoreDevUnusedFiles": true,
-    "bigPackageSizeSupport": false,
+    "bigPackageSizeSupport": true,
     "useIsolateContext": false
   }
 }

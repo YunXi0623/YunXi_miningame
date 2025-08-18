@@ -54,53 +54,26 @@ class LoadingScene {
   }
 
   startLoading() {
-    // 模拟资源加载进度
-    this.simulateLoading();
-  }
-
-  simulateLoading() {
-    const loadingSteps = [
-      { name: '加载背景资源', duration: 600 },
-      { name: '加载音频资源', duration: 1000 },
-      { name: '加载游戏数据', duration: 800 },
-      { name: '初始化场景', duration: 500 },
-      { name: '完成加载', duration: 300 }
-    ];
-
-    let currentStep = 0;
-    let stepProgress = 0;
-    const totalSteps = loadingSteps.length;
-
-    const updateProgress = () => {
-      if (currentStep >= totalSteps) {
+    this.currentStepName = '加载资源包...';
+    const loadTask = wx.loadSubpackage({
+      name: 'assets',
+      success: () => {
+        // 分包加载成功，可以安全使用分包资源
         this.completeLoading();
-        return;
+      },
+      fail: (res) => {
+        console.error('资源包加载失败:', res);
+        this.game.showModal('错误', '资源加载失败，请检查网络后重试。').then(() => {
+          this.game.exitGame();
+        });
       }
+    });
 
-      const step = loadingSteps[currentStep];
-      stepProgress += 16; // 约60fps
-
-      if (stepProgress >= step.duration) {
-        currentStep++;
-        stepProgress = 0;
-      }
-
-      // 更新当前步骤名称
-      this.currentStepName = step.name;
-
-      // 计算总体进度，使用缓动函数让进度更自然
-      const stepWeight = 1 / totalSteps;
-      const currentStepProgress = stepProgress / step.duration;
-      const easedProgress = this.easeInOut(currentStepProgress);
-      this.progress = (currentStep * stepWeight) + (easedProgress * stepWeight);
-      this.loadedResources = Math.floor(this.progress * 100);
-
-      if (this.isLoading) {
-        requestAnimationFrame(updateProgress);
-      }
-    };
-
-    updateProgress();
+    loadTask.onProgressUpdate(res => {
+      this.progress = res.progress / 100;
+      this.loadedResources = res.progress;
+      this.currentStepName = `下载资源中... ${res.progress}%`;
+    });
   }
 
   // 缓动函数，让进度条动画更自然
@@ -112,6 +85,7 @@ class LoadingScene {
     this.progress = 1;
     this.loadedResources = 100;
     this.isLoading = false;
+    this.currentStepName = '加载完成';
     
     // 延迟切换到主菜单，让用户看到100%完成
     setTimeout(() => {
