@@ -1,7 +1,6 @@
 // 主菜单场景
 const DeviceAdapter = require('../utils/device');
 const AudioManager = require('../utils/audio');
-
 const GameCircleConfig = require('../config/game-circle-config');
 
 // 兼容微信小游戏的圆角矩形绘制函数
@@ -57,8 +56,8 @@ class MainMenuScene {
     };
     
     // 创建按钮
-    const buttonWidth = this.device.adaptSize(160);  // 减小按钮宽度
-    const buttonHeight = this.device.adaptSize(40);  // 减小按钮高度
+    const buttonWidth = this.device.adaptSize(200);
+    const buttonHeight = this.device.adaptSize(50);
     const buttonSpacing = this.device.adaptSize(20);
     
     // 计算网格布局参数
@@ -67,9 +66,9 @@ class MainMenuScene {
     const totalButtonWidth = buttonWidth * gridColumns + buttonSpacing * (gridColumns - 1);
     const totalButtonHeight = buttonHeight * gridRows + buttonSpacing * (gridRows - 1);
     
-    // 计算网格起始位置（确保整体居中，并向下偏移）
+    // 计算网格起始位置（确保整体居中）
     const gridStartX = centerX - totalButtonWidth / 2;
-    const gridStartY = centerY - totalButtonHeight / 2 + buttonSpacing * 7;  // 向下偏移7个间距
+    const gridStartY = centerY - totalButtonHeight / 2;
     
     // 定义所有按钮配置
     const buttonConfigs = [
@@ -114,8 +113,6 @@ class MainMenuScene {
       
       this.buttons.push(button);
     });
-    
-    
   }
 
   update() {
@@ -211,7 +208,7 @@ class MainMenuScene {
 
   handleTouch(x, y) {
     // 只在点击到按钮时触发action
-    this.buttons.forEach((button, index) => {
+    this.buttons.forEach(button => {
       if (this.isPointInButton(x, y, button)) {
         this.audio.playButtonSound();
         button.action();
@@ -262,47 +259,27 @@ class MainMenuScene {
   }
 
   openGameCircle() {
-    try {
-      // 1. 创建PageManager实例
-      const pageManager = wx.createPageManager();
-      
-      // 2. 调用load方法加载页面
-      pageManager.load({
-        openlink: GameCircleConfig.getHomePageLink()
-      }).then((res) => {
-        // 加载成功，res 可能携带不同活动、功能返回的特殊回包信息
-        
-        // 3. 加载成功后按需显示
-        pageManager.show();
-        
-        // 显示成功提示
+    // 获取游戏圈首页链接
+    const gameCircleLink = GameCircleConfig.getHomePageLink();
+    
+    // 使用wx.createPageManager打开游戏圈
+    wx.createPageManager({
+      openlink: gameCircleLink,
+      success: (res) => {
+        console.log('游戏圈打开成功');
+        // 可以添加成功提示
         if (this.game && this.game.showToast) {
           this.game.showToast('游戏圈打开成功');
         }
-        
-      }).catch((err) => {
-        // 加载失败，请查阅 err 给出的错误信息
-        console.error('游戏圈页面加载失败:', err);
-        
-        // 显示失败提示
+      },
+      fail: (err) => {
+        console.error('游戏圈打开失败:', err);
+        // 添加失败提示
         if (this.game && this.game.showToast) {
           this.game.showToast('游戏圈打开失败，请稍后重试');
         }
-      });
-      
-    } catch (error) {
-      console.error('调用wx.createPageManager时发生异常:', error);
-      
-      // 兜底方案：显示错误信息
-      if (this.game && this.game.showToast) {
-        this.game.showToast('游戏圈功能异常，请稍后重试');
-      } else {
-        wx.showToast({
-          title: '游戏圈功能异常',
-          icon: 'none'
-        });
       }
-    }
+    });
   }
 
   destroy() {

@@ -279,7 +279,7 @@ class SmartCutGame {
   shareGame() {
     wx.shareAppMessage({
       title: '切割投喂大作战 - 挑战你的思维能力！',
-      imageUrl: 'subpackages/assets/images/menu-background.png'
+      imageUrl: 'images/menu-background.png'
     });
   }
 
@@ -288,6 +288,24 @@ class SmartCutGame {
     this.stop();
     wx.exitMiniProgram();
   }
+}
+
+// 微信小游戏分享回调函数
+function onShareAppMessage() {
+  return {
+    title: '切割投喂大作战 - 挑战你的思维能力！',
+    imageUrl: 'images/menu-background.png',
+    query: 'from=share'
+  };
+}
+
+// 微信小游戏朋友圈分享回调函数
+function onShareTimeline() {
+  return {
+    title: '切割投喂大作战 - 挑战你的思维能力！',
+    imageUrl: 'images/menu-background.png',
+    query: 'from=timeline'
+  };
 }
 
 // 启动游戏

@@ -13,5 +13,7 @@
       "root": "subpackages/assets"
     }
   ],
-  "workers": "js/workers"
+  "workers": "js/workers",
+  "onShareAppMessage": "onShareAppMessage",
+  "onShareTimeline": "onShareTimeline"
 } 
