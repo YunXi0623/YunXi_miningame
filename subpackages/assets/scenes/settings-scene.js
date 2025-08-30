@@ -299,23 +299,28 @@ class SettingsScene {
     if (this.isPointInButton(x, y, this.backButton)) {
       this.audio.playButtonSound();
       this.backButton.action();
-      return;
+      return true;
     }
     
     // 检查保存按钮
     if (this.isPointInButton(x, y, this.saveButton)) {
       this.audio.playButtonSound();
       this.saveButton.action();
-      return;
+      return true;
     }
     
-    // 检查设置项
-    this.settingItems.forEach(item => {
+    // 检查设置项（包括开关按钮）
+    for (let i = 0; i < this.settingItems.length; i++) {
+      const item = this.settingItems[i];
       if (this.isPointInButton(x, y, item)) {
         this.audio.playButtonSound();
         item.action();
+        return true;
       }
-    });
+    }
+    
+    // 没有触摸到任何按钮
+    return false;
   }
 
   isPointInButton(x, y, button) {
@@ -373,6 +378,22 @@ class SettingsScene {
   goBack() {
     // 如果未保存，恢复原始设置
     this.audio.updateSettings(this._originalSettings);
+    
+    // 同时恢复UI显示，确保界面与实际设置一致
+    this.settings = JSON.parse(JSON.stringify(this._originalSettings));
+    this.settingItems.forEach(item => {
+      if (item.title === '音效') {
+        item.value = this.settings.sound;
+      } else if (item.title === '震动') {
+        item.value = this.settings.vibration;
+      } else if (item.title === '背景音乐') {
+        item.value = this.settings.bgMusic;
+      }
+    });
+    
+    // 重要：将恢复的原始设置重新保存到存储，确保下次进入时显示正确
+    this.game.storage.updateSettings(this._originalSettings);
+    
     // 返回主菜单或关卡选择时恢复主界面音乐
     this.audio.playMusic('main');
     this.game.switchScene('mainMenu');
