@@ -271,6 +271,17 @@ class StorageManager {
     this.saveData(this.defaultData);
   }
 
+  // 重置关卡进度（保留设置和统计数据）
+  resetLevelProgress() {
+    const data = this.getData();
+    // 只重置关卡相关数据，保留其他设置
+    data.unlockedLevels = [1]; // 只解锁第一关
+    data.completedLevels = []; // 清空已通关关卡
+    data.currentLevel = 1; // 重置当前关卡为第一关
+    // 保留 bestScores, settings, reviveCount 等数据
+    this.saveData(data);
+  }
+
   // 清除存储
   clearStorage() {
     try {

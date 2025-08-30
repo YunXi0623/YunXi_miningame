@@ -34,16 +34,35 @@ class SmartCutGame {
     this.touchStartY = 0;
     this.isTouching = false;
     
+    // 弹窗状态管理 - 修复弹窗需要点击两次的问题
+    this.modalPending = false;
+    
     this.init();
   }
 
   init() {
+    // console.log('[Main] 开始初始化游戏...');
+    
+    // 先创建加载场景（不依赖分包）
     this.scenes = {
       loading: new this.sceneClasses.loading(this)
     };
+    
+    // 切换到加载场景
     this.switchScene('loading');
+    
+    // 绑定事件
     this.bindEvents();
+    
+    // 启动游戏循环
     this.start();
+    
+    // 激活分享菜单（转发给朋友和分享到朋友圈）
+    wx.showShareMenu({
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
+    
+    // console.log('[Main] 游戏初始化完成');
   }
 
   initScenes() {
@@ -73,11 +92,21 @@ class SmartCutGame {
       this.touchStartY = touch.clientY;
       this.isTouching = true;
 
-      // 只有modalReady时才分发给modalScene
-      if (this.modalReady && this.currentScene && this.currentScene.resolve && this.currentScene.handleTouch) {
-        this.currentScene.handleTouch(this.touchStartX, this.touchStartY);
-        return;
+      // 检查当前场景是否为弹窗场景（复活、暂停、设置等）
+      const isModalScene = this.currentScene && (
+        this.currentScene.constructor.name === 'ReviveScene' ||
+        this.currentScene.constructor.name === 'PauseScene' ||
+        this.currentScene.constructor.name === 'SettingsScene' ||
+        this.currentScene.constructor.name === 'HelpScene'
+      );
+
+      // 如果是弹窗场景，优先处理触摸事件
+      if (isModalScene && this.currentScene.handleTouch) {
+        const handled = this.currentScene.handleTouch(this.touchStartX, this.touchStartY);
+        if (handled) return; // 如果弹窗场景处理了触摸事件，不再传递给其他场景
       }
+
+      // 普通场景触摸事件处理
       if (this.currentScene && this.currentScene.handleTouch) {
         this.currentScene.handleTouch(this.touchStartX, this.touchStartY);
       }
@@ -89,8 +118,17 @@ class SmartCutGame {
       const touch = e.touches[0];
       const deltaX = touch.clientX - this.touchStartX;
       const deltaY = touch.clientY - this.touchStartY;
-      // 弹窗不处理move
-      if (this.currentScene && this.currentScene.resolve) return;
+      
+      // 弹窗场景不处理移动事件
+      const isModalScene = this.currentScene && (
+        this.currentScene.constructor.name === 'ReviveScene' ||
+        this.currentScene.constructor.name === 'PauseScene' ||
+        this.currentScene.constructor.name === 'SettingsScene' ||
+        this.currentScene.constructor.name === 'HelpScene'
+      );
+      
+      if (isModalScene) return;
+      
       if (this.currentScene && this.currentScene.handleTouchMove) {
         this.currentScene.handleTouchMove(touch.clientX, touch.clientY, deltaX, deltaY);
       }
@@ -263,13 +301,23 @@ class SmartCutGame {
 
   // 显示确认对话框
   showModal(title, content, showCancel = true) {
+    // 设置弹窗状态，防止触摸事件冲突
+    this.modalPending = true;
+    
     return new Promise((resolve) => {
       wx.showModal({
         title: title,
         content: content,
         showCancel: showCancel,
         success: (res) => {
+          // 弹窗关闭后，清除状态
+          this.modalPending = false;
           resolve(res.confirm);
+        },
+        fail: () => {
+          // 弹窗失败时也要清除状态
+          this.modalPending = false;
+          resolve(false);
         }
       });
     });
@@ -279,7 +327,7 @@ class SmartCutGame {
   shareGame() {
     wx.shareAppMessage({
       title: '切割投喂大作战 - 挑战你的思维能力！',
-      imageUrl: 'images/menu-background.png'
+      imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0'
     });
   }
 
@@ -288,13 +336,19 @@ class SmartCutGame {
     this.stop();
     wx.exitMiniProgram();
   }
+
+  // 生成分享图片
+  generateShareImage() {
+    // 使用默认分享图片，确保分享功能稳定
+    return 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0';
+  }
 }
 
 // 微信小游戏分享回调函数
 function onShareAppMessage() {
   return {
     title: '切割投喂大作战 - 挑战你的思维能力！',
-    imageUrl: 'images/menu-background.png',
+    imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0',
     query: 'from=share'
   };
 }
@@ -303,7 +357,7 @@ function onShareAppMessage() {
 function onShareTimeline() {
   return {
     title: '切割投喂大作战 - 挑战你的思维能力！',
-    imageUrl: 'images/menu-background.png',
+    imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0',
     query: 'from=timeline'
   };
 }

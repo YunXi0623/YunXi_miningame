@@ -34,6 +34,9 @@ class PauseScene {
     this.buttons = [];
     this.resumeButton = null;
     
+    // 弹窗状态管理 - 防止触摸事件冲突
+    this.isModalShowing = false;
+    
     this.init(params);
   }
 
@@ -283,11 +286,16 @@ class PauseScene {
   }
 
   handleTouch(x, y) {
+    // 如果确认弹窗正在显示，阻止触摸事件处理
+    if (this.isModalShowing) {
+      return false;
+    }
+    
     // 检查关闭按钮
     if (this.isPointInCircle(x, y, this.closeButton)) {
       this.audio.playButtonSound();
       this.closeButton.action();
-      return;
+      return true;
     }
     // 按钮区域参数
     const centerX = this.device.screenWidth / 2;
@@ -301,20 +309,22 @@ class PauseScene {
     if (x >= centerX - buttonWidth / 2 && x <= centerX + buttonWidth / 2 && y >= btnY1 && y <= btnY1 + buttonHeight) {
       this.audio.playButtonSound();
       this.resumeGame();
-      return;
+      return true;
     }
     // 重新开始
     if (x >= centerX - buttonWidth / 2 && x <= centerX + buttonWidth / 2 && y >= btnY2 && y <= btnY2 + buttonHeight) {
       this.audio.playButtonSound();
       this.restartGame();
-      return;
+      return true;
     }
     // 返回主菜单
     if (x >= centerX - buttonWidth / 2 && x <= centerX + buttonWidth / 2 && y >= btnY3 && y <= btnY3 + buttonHeight) {
       this.audio.playButtonSound();
       this.goToMainMenu();
-      return;
+      return true;
     }
+    
+    return false;
   }
 
   isPointInButton(x, y, button) {
@@ -352,8 +362,14 @@ class PauseScene {
   }
 
   goToMainMenu() {
+    // 设置弹窗状态，防止触摸事件冲突
+    this.isModalShowing = true;
+    
     // 显示确认对话框
     this.game.showModal('提示', '确定要返回主菜单吗？当前游戏进度将丢失。').then(confirm => {
+      // 弹窗关闭后，清除状态
+      this.isModalShowing = false;
+      
       if (confirm) {
         this.game.switchScene('mainMenu');
       }

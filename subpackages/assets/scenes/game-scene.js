@@ -155,6 +155,13 @@ class GameScene {
       this.restoreFromSnapshot(params.snapshot);
       return;
     }
+    
+    // 如果是复活恢复，需要特殊处理
+    if (params && params.action === 'revive') {
+      this.handleRevive(params);
+      return;
+    }
+    
     try {
       this.currentLevel = params.level || 1;
       this.gameState = 'playing';
@@ -1769,7 +1776,8 @@ class GameScene {
     setTimeout(() => {
       this.audio.stopMusic();
       this.game.switchScene('revive', {
-        level: this.currentLevel
+        level: this.currentLevel,
+        timestamp: Date.now()
       });
     }, 1000);
   }
@@ -1826,6 +1834,38 @@ class GameScene {
     this.startGestureHint();
     
     // console.log('关卡已重置');
+  }
+
+  /**
+   * 处理复活后的状态恢复
+   * @param {object} params - 复活参数
+   */
+  handleRevive(params) {
+    try {
+      // 恢复游戏状态为进行中
+      this.gameState = 'playing';
+      
+      // 重新加载当前关卡（恢复到失败前的状态）
+      this.loadLevel(this.currentLevel);
+      
+      // 创建UI
+      this.createUI();
+      
+      // 恢复背景音乐
+      this.audio.playMusic('game');
+      
+      // 启动手势提示
+      this.startGestureHint();
+      
+      // 显示复活成功提示
+      if (this.game && this.game.showToast) {
+        this.game.showToast('复活成功！游戏继续');
+      }
+    } catch (error) {
+      console.error('[GameScene] 复活恢复失败:', error);
+      // 如果复活恢复失败，回退到正常重置
+      this.resetLevel();
+    }
   }
 
   showHint() {
