@@ -254,9 +254,9 @@ class MainMenuScene {
       this.game.shareGame();
     } else {
       // 兜底方案：直接调用微信分享，使用动态生成的图片
-      const shareImagePath = this.game ? this.game.generateShareImage() : 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0';
+      const shareImagePath = this.game ? this.game.generateShareImage() : 'images/GameSharingImage.jpg';
       wx.shareAppMessage({
-        title: '切割投喂大作战 - 挑战你的思维能力！',
+        title: '我要挑战10个！',
         imageUrl: shareImagePath
       });
     }

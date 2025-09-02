@@ -6,6 +6,9 @@ const AudioManager = require('./utils/audio');
 const LoadingScene = require('./scenes/loading-scene');
 const MainMenuScene = require('./scenes/main-menu');
 
+// 引入分享配置
+require('./share-config');
+
 // 分包场景名列表
 const SUBPACKAGE_SCENES = [
   'levelSelect', 'game', 'revive', 'result', 'settings', 'pause', 'help'
@@ -326,8 +329,8 @@ class SmartCutGame {
   // 分享游戏
   shareGame() {
     wx.shareAppMessage({
-      title: '切割投喂大作战 - 挑战你的思维能力！',
-      imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0'
+      title: '我要挑战10个！',
+      imageUrl: 'images/GameSharingImage.jpg'
     });
   }
 
@@ -340,30 +343,17 @@ class SmartCutGame {
   // 生成分享图片
   generateShareImage() {
     // 使用默认分享图片，确保分享功能稳定
-    return 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0';
+    return 'images/GameSharingImage.jpg';
   }
 }
 
-// 微信小游戏分享回调函数
-function onShareAppMessage() {
-  return {
-    title: '切割投喂大作战 - 挑战你的思维能力！',
-    imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0',
-    query: 'from=share'
-  };
-}
-
-// 微信小游戏朋友圈分享回调函数
-function onShareTimeline() {
-  return {
-    title: '切割投喂大作战 - 挑战你的思维能力！',
-    imageUrl: 'https://mmgame.qpic.cn/image/dd3903f8c4dfe609ffa1db0eea2fcb3383d118a66880ff6cac0f1045a3ce5043/0',
-    query: 'from=timeline'
-  };
-}
+// 分享函数已移至 share-config.js 文件中
 
 // 启动游戏
 const game = new SmartCutGame();
 
 // 导出游戏实例
-module.exports = game; 
+module.exports = game;
+
+// 确保分享函数在模块加载后立即可用
+// 这些函数必须在文件的最底部定义，以确保它们能被微信小游戏系统正确识别 
